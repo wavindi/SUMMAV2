@@ -29,7 +29,13 @@ echo "==> apt install"
 sudo apt-get update -y
 sudo apt-get install -y \
     python3 python3-pip python3-venv \
-    chromium-browser unclutter curl x11-xserver-utils
+    unclutter curl x11-xserver-utils
+
+# Chromium package was renamed in Trixie. Try the new name first, fall back.
+if ! sudo apt-get install -y chromium; then
+    echo "==> 'chromium' not available, trying 'chromium-browser'"
+    sudo apt-get install -y chromium-browser
+fi
 
 echo "==> pip install (system, --break-system-packages on Bookworm)"
 PIP_FLAGS=""
