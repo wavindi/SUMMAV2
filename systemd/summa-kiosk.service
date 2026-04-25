@@ -1,0 +1,27 @@
+# /etc/systemd/system/summa-kiosk.service
+#
+# Auto-launch Chromium in kiosk mode on the Pi's HDMI output once the desktop
+# session is up. Requires Raspberry Pi OS *with Desktop* (LXDE/Wayfire). For
+# a Lite (headless) install you don't want this — point a separate device at
+# the LAN URL printed by backend_pi.py.
+#
+# Patched by tools/setup_pi.sh to use the right User= and DISPLAY.
+
+[Unit]
+Description=SUMMA V3 padel scoreboard kiosk (Chromium)
+After=summa-backend.service graphical.target
+Wants=summa-backend.service
+Requires=graphical.target
+
+[Service]
+Type=simple
+User=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+Environment=SUMMA_KIOSK_URL=http://127.0.0.1:5000/
+ExecStart=/bin/bash /home/pi/summa/SUMMAV3/tools/start_kiosk.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

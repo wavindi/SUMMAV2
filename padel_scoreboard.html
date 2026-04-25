@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padel Scoreboard - Live Match</title>
+    <link rel="stylesheet" href="padel_css.css">
+</head>
+<body>
+    <!-- SPLASH SCREEN - Changed to PNG -->
+    <div class="splash-screen active" id="splashScreen">
+        <img src="splash.jpg" class="splash-img" alt="Padel Splash">
+    </div>
+
+    <!-- MODE SELECTION SCREEN -->
+    <div class="mode-selection-screen" id="modeSelectionScreen">
+        <!-- Trophy Icon - NO ANIMATION -->
+        <div class="mode-trophy-icon">🏆</div>
+
+        <div class="mode-header">
+            <div class="mode-title">GAME MODE</div>
+            <div class="mode-subtitle">SELECTION</div>
+        </div>
+
+        <div class="mode-cards-container">
+            <!-- BASIC MODE -->
+            <div class="mode-card mode-basic" onclick="selectMode('basic')">
+                <div class="mode-icon">
+                    <svg class="padel-racket-icon" viewBox="0 0 90 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="45" cy="35" rx="30" ry="35" stroke="#000" stroke-width="6" fill="none"/>
+                        <line x1="45" y1="70" x2="45" y2="115" stroke="#000" stroke-width="8" stroke-linecap="round"/>
+                        <circle cx="45" cy="35" r="12" fill="#000" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="mode-name">BASIC</div>
+                <div class="mode-description">
+                    <span class="mode-desc-line">Changement de côté</span>
+                    <span class="mode-desc-line">🔄</span>
+                    <span class="mode-desc-line">Après le <span class="highlight-gold">JEU 1</span></span>
+                    <span class="mode-desc-line">Mode simple pour jeu décontracté</span>
+                    <span class="mode-desc-line">Parfait pour les débutants</span>
+                </div>
+                <div class="mode-icon" style="margin-top: 20px;">
+                    <svg viewBox="0 0 24 24" fill="#000" style="width: 40px; height: 40px;">
+                        <text x="12" y="18" text-anchor="middle" font-size="16" font-weight="bold">1</text>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- COMPETITION MODE -->
+            <div class="mode-card mode-competition" onclick="selectMode('competition')">
+                <div class="mode-icon">
+                    <svg class="trophy-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M30 15 L30 30 Q30 45 40 50 L35 70 L65 70 L60 50 Q70 45 70 30 L70 15 Z" 
+                              stroke="#000" stroke-width="4" fill="none"/>
+                        <rect x="25" y="70" width="50" height="8" fill="#000"/>
+                        <rect x="20" y="78" width="60" height="6" rx="3" fill="#000"/>
+                        <line x1="25" y1="15" x2="75" y2="15" stroke="#000" stroke-width="4"/>
+                    </svg>
+                </div>
+                <div class="mode-name">COMPETITION</div>
+                <div class="mode-description">
+                    <span class="mode-desc-line">Changement de côté</span>
+                    <span class="mode-desc-line">🔄</span>
+                    <span class="mode-desc-line"><span class="highlight-gold">JEUX IMPAIRS</span></span>
+                    <span class="mode-desc-line">(1, 3, 5, 7...)</span>
+                    <span class="mode-desc-line">Règles officielles du padel</span>
+                </div>
+                <div class="mode-icon" style="margin-top: 20px; display: flex; gap: 10px;">
+                    <svg viewBox="0 0 24 24" fill="#000" style="width: 40px; height: 40px;">
+                        <text x="12" y="18" text-anchor="middle" font-size="16" font-weight="bold">1</text>
+                    </svg>
+                    <svg viewBox="0 0 24 24" fill="#000" style="width: 40px; height: 40px;">
+                        <text x="12" y="18" text-anchor="middle" font-size="16" font-weight="bold">2</text>
+                    </svg>
+                    <svg viewBox="0 0 24 24" fill="#000" style="width: 40px; height: 40px;">
+                        <text x="12" y="18" text-anchor="middle" font-size="16" font-weight="bold">3</text>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- TOURNAMENT MODE - LOCKED -->
+            <div class="mode-card mode-tournament">
+                <div class="mode-icon">
+                    <svg class="podium-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="35" y="40" width="30" height="40" fill="#000" opacity="0.7"/>
+                        <rect x="5" y="60" width="30" height="20" fill="#000" opacity="0.5"/>
+                        <rect x="65" y="50" width="30" height="30" fill="#000" opacity="0.6"/>
+                    </svg>
+                </div>
+                <div class="mode-name">MODE TOURNOIS</div>
+                <div class="mode-description mode-locked-text">
+                    <span class="locked-title">PREMIUM MODE</span>
+                    <span class="mode-desc-line">Identique au mode COMPETITION</span>
+                    <span class="mode-desc-line">Tournois professionnels</span>
+                    <span class="mode-desc-line">Suivi complet des statistiques</span>
+                </div>
+                <div class="lock-icon">
+                    <svg viewBox="0 0 24 24" fill="#000" style="width: 60px; height: 60px;">
+                        <rect x="7" y="11" width="10" height="9" rx="1" stroke="#000" stroke-width="2" fill="none"/>
+                        <path d="M9 11 V8 A3 3 0 0 1 15 8 V11" stroke="#000" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN SCOREBOARD -->
+    <div class="scoreboard hidden">
+        <!-- Header -->
+        <div class="header">
+            <div class="tournament-info">
+                <div class="tournament-title">ULTIMA X ARENA GYM</div>
+            </div>
+
+            <div class="time-display" id="timeDisplay">00:00</div>
+
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                <span style="color: #000; font-size: 14px; font-weight: 400; text-transform: uppercase;">LIVE</span>
+            </div>
+
+            <div class="logo-container">
+                <div class="logo" id="logoClick">
+                    <img src="logo.png" alt="Logo" class="logo-img" id="logoImg">
+                    <div class="logo-fallback">P</div>
+                </div>
+                <div class="logo-text">SUMMA</div>
+            </div>
+        </div>
+
+        <!-- Main Scoreboard -->
+        <div class="main-scoreboard">
+            <!-- Black Team -->
+            <div class="team-section black-team">
+                <div class="team-header">
+                    <div class="team-label">
+                        <div class="team-circle black-circle"></div>
+                        <div class="team-name">BLACK TEAM</div>
+                    </div>
+                </div>
+                <div class="score-container">
+                    <div class="score-main" id="scoreBlack">0</div>
+                    <div class="team-games" id="gamesBlack">0</div>
+                </div>
+               
+            </div>
+
+            <!-- Yellow Team -->
+            <div class="team-section yellow-team">
+                <div class="team-header">
+                    <div class="team-label">
+                        <div class="team-name">YELLOW TEAM</div>
+                        <div class="team-circle yellow-circle"></div>
+                    </div>
+                </div>
+                <div class="score-container">
+                    <div class="score-main" id="scoreYellow">0</div>
+                    <div class="team-games" id="gamesYellow">0</div>
+                </div>
+                
+            </div>
+
+            <!-- VS Divider -->
+            <div class="vs-divider">
+                <div class="vs-text">VS</div>
+            </div>
+        </div>
+
+        <!-- Sets Score Panel -->
+        <div class="sets-score">
+            <div class="sets-label">SETS</div>
+            <div class="sets-scores">
+                <div class="sets-score-number" id="setsBlack">0</div>
+                <div style="color: var(--red); font-size: 40px; margin: 0 10px;">:</div>
+                <div class="sets-score-number" id="setsYellow">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2-STAGE WINNER DISPLAY -->
+    <div class="winner-display" id="winnerDisplay">
+        <!-- STAGE 1: Trophy + Title + Winner Name -->
+        <div class="winner-stage-1" id="stage1">
+            <div class="winner-trophy">🏆</div>
+            <div class="winner-title">MATCH WINNER</div>
+            <div class="winner-team-name" id="winnerTeamNameStage1">BLACK TEAM</div>
+        </div>
+
+        <!-- STAGE 2: Full Stats -->
+        <div class="winner-stage-2" id="stage2">
+            <!-- Header with Trophy, Winner, and Stats in one line -->
+            <div class="winner-header-with-stats">
+                <div class="winner-trophy-small">🏆</div>
+                
+                <div class="winner-center-info">
+                    <div class="winner-title-small">MATCH WINNER</div>
+                    <div class="winner-team-name-small" id="winnerTeamNameStage2">BLACK TEAM</div>
+                </div>
+                
+                <div class="winner-stats-inline">
+                    <div class="stat-item">
+                        <div class="stat-label">Final Sets</div>
+                        <div class="stat-value" id="finalSetsScore">2-0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Duration</div>
+                        <div class="stat-value" id="matchDuration">45m</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- BIGGER Sets Table -->
+            <div class="sets-table-section">
+                <div class="table-container">
+                    <div class="table-title">SETS BREAKDOWN</div>
+                    <div class="sets-table-wrapper">
+                        <table class="sets-table">
+                            <thead>
+                                <tr>
+                                    <th>Set</th>
+                                    <th>Black</th>
+                                    <th>Yellow</th>
+                                    <th>Winner</th>
+                                </tr>
+                            </thead>
+                            <tbody id="setsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="control-panel" id="controlPanel" style="display: none;">
+        <button class="control-btn" onclick="addPointManual('black')">+1 Black</button>
+        <button class="control-btn" onclick="addPointManual('yellow')">+1 Yellow</button>
+        <button class="control-btn" onclick="subtractPoint('black')">-1 Black</button>
+        <button class="control-btn" onclick="subtractPoint('yellow')">-1 Yellow</button>
+        <button class="control-btn" onclick="resetMatch()">Reset</button>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="socket.io.min.js"></script>
+    <script src="padel_js.js"></script>
+</body>
+</html>

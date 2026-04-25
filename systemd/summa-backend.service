@@ -1,0 +1,32 @@
+# /etc/systemd/system/summa-backend.service
+#
+# Run the V3 backend on boot. Installed by tools/setup_pi.sh, which patches
+# the User= line and the WorkingDirectory= to match the actual install
+# location.
+#
+# Manual install:
+#   sudo cp systemd/summa-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now summa-backend.service
+
+[Unit]
+Description=SUMMA V3 padel scoreboard backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/summa/SUMMAV3
+ExecStart=/usr/bin/python3 /home/pi/summa/SUMMAV3/backend_pi.py
+Restart=on-failure
+RestartSec=3
+# Pi 3B is RAM-constrained; cap memory so a runaway can't OOM the kiosk
+MemoryHigh=350M
+MemoryMax=450M
+# Capture stdout/stderr to journal in addition to the rotating file logger
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
