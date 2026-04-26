@@ -5,6 +5,29 @@
 const API_BASE = window.location.protocol.startsWith('http') ? window.location.origin : "http://127.0.0.1:5000";
 console.log(`📡 API Configured at: ${API_BASE}`);
 
+function uiEventId() {
+    const rnd = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    return `ui-${rnd}`;
+}
+
+function postRemoteEvent(payload) {
+    return fetch(`${API_BASE}/remote_event`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    }).then(async (res) => {
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            console.error(`❌ /remote_event ${payload.action} failed: HTTP ${res.status} ${text}`);
+        }
+        return res;
+    }).catch(error => {
+        console.error(`❌ /remote_event ${payload.action} network error:`, error);
+    });
+}
+
 // ============================================================================
 // 2. GLOBAL CONTROL FUNCTIONS
 // ============================================================================
@@ -12,21 +35,13 @@ console.log(`📡 API Configured at: ${API_BASE}`);
 window.addPointManual = function(team) {
     console.log(`🔘 CLICK: Add Point for ${team}`);
     animateButton();
-    fetch(`${API_BASE}/addpoint`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({team: team})
-    }).catch(error => console.error('❌ Error adding point:', error));
+    postRemoteEvent({action: 'addpoint', team: team, event_id: uiEventId()});
 };
 
 window.subtractPoint = function(team) {
     console.log(`🔘 CLICK: Subtract Point for ${team}`);
     animateButton();
-    fetch(`${API_BASE}/subtractpoint`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({team: team})
-    }).catch(error => console.error('❌ Error subtracting point:', error));
+    postRemoteEvent({action: 'subtractpoint', team: team, event_id: uiEventId()});
 };
 
 window.resetMatch = function() {
@@ -505,9 +520,8 @@ function resetMatchAndGoToSplash() {
     serverMatchStartTime = null;
 
     // 3. Tell backend to reset and reload
-    fetch(`${API_BASE}/resetmatch`, { method: 'POST' })
-    .then(() => window.location.reload())
-    .catch(e => console.error(e));
+    postRemoteEvent({action: 'reset', event_id: uiEventId()})
+    .then(() => window.location.reload());
 }
 
 function clearWinnerTimeout() {
