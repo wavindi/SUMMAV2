@@ -478,23 +478,21 @@ function selectMode(mode) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({mode: mode})
     }).then(r => r.json()).then(() => {
-        document.getElementById('modeSelectionScreen').classList.remove('active');
-        setTimeout(() => {
-            document.getElementById('modeSelectionScreen').style.display = 'none';
-            document.querySelector('.scoreboard').classList.remove('hidden');
-            isScoreboardActive = true;
-        }, 500);
+        const screen = document.getElementById('modeSelectionScreen');
+        screen.classList.remove('active');
+        screen.style.display = 'none';
+        document.querySelector('.scoreboard').classList.remove('hidden');
+        isScoreboardActive = true;
     });
 }
 
 function dismissSplash() {
     const splash = document.getElementById('splashScreen');
     splash.classList.remove('active');
-    setTimeout(() => {
-        const mode = document.getElementById('modeSelectionScreen');
-        mode.style.display = 'flex';
-        setTimeout(() => mode.classList.add('active'), 10);
-    }, 300);
+    splash.style.display = 'none';
+    const mode = document.getElementById('modeSelectionScreen');
+    mode.style.display = 'flex';
+    mode.classList.add('active');
 }
 
 function resetMatchAndGoToSplash() {

@@ -700,202 +700,232 @@ body {
     display: block;
 }
 
-/* MODE SELECTION SCREEN */
+/* MODE SELECTION SCREEN — premium, TV-readable, icon-driven */
 .mode-selection-screen {
     position: fixed;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100vw;
     height: 100vh;
-    background-image: url('back.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background:
+        radial-gradient(ellipse at 50% 35%, #1d242d 0%, #0a0d12 60%, #02040a 100%);
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    opacity: 0;
     padding: 40px;
-    transition: opacity 0.5s ease;
+    overflow: hidden;
 }
 
+/* subtle court-line vignette layer (no extra asset needed) */
 .mode-selection-screen::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(40, 50, 60, 0.95) 0%, rgba(30, 40, 50, 0.95) 100%);
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.65) 100%);
+    pointer-events: none;
+    z-index: 0;
 }
 
 .mode-selection-screen.active {
     display: flex;
-    opacity: 1;
 }
 
 .mode-header {
     position: relative;
     z-index: 1;
     text-align: center;
-    margin-bottom: 60px;
+    margin-bottom: 80px;
 }
 
 .mode-title {
     color: var(--gold);
-    font-size: 80px;
+    font-family: 'Anton', Arial, sans-serif;
+    font-size: clamp(48px, 4.6vw, 92px);
     font-weight: 400;
-    font-style: italic;
+    font-style: normal;
     text-transform: uppercase;
-    letter-spacing: 8px;
+    letter-spacing: 12px;
     line-height: 1;
 }
 
-.mode-subtitle {
-    color: var(--white);
-    font-size: 48px;
-    font-weight: 400;
-    font-style: italic;
-    text-transform: uppercase;
-    letter-spacing: 6px;
-}
-
-/* 🏆 TROPHY - LEFT CORNER (NO ANIMATION) */
-.mode-trophy-icon {
-    position: absolute;
-    top: 30px;
-    left: 40px;
-    font-size: 80px;
-    z-index: 2;
+.mode-title::after {
+    content: '';
+    display: block;
+    width: 96px;
+    height: 2px;
+    margin: 28px auto 0;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
 .mode-cards-container {
     display: flex;
-    gap: 40px;
+    gap: 48px;
     justify-content: center;
     align-items: stretch;
     position: relative;
     z-index: 1;
-    max-width: 1400px;
+    max-width: 1500px;
     width: 100%;
 }
 
-/* MODE CARDS - NO HOVER JUMP */
+/* MODE CARDS — frosted gold glass */
 .mode-card {
     flex: 1;
-    max-width: 450px;
-    min-height: 520px;
-    border-radius: 30px;
-    padding: 50px 40px;
+    max-width: 460px;
+    min-height: 540px;
+    border-radius: 24px;
+    padding: 56px 40px 44px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: space-between;
     cursor: pointer;
     position: relative;
-    transition: opacity 0.2s ease;
+    overflow: hidden;
+    background: rgba(212, 175, 55, 0.07);
+    border: 2px solid rgba(212, 175, 55, 0.40);
+    color: var(--gold);
+    outline: none;
 }
 
-.mode-card:hover {
-    opacity: 0.9;
+/* Selected / focused (this is what the remote will drive). Mouse hover
+   maps to the same state for laptop testing. */
+.mode-card.selected,
+.mode-card:not(.mode-tournament):focus,
+.mode-card:not(.mode-tournament):focus-visible,
+.mode-card:not(.mode-tournament):hover {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.18);
 }
 
-.mode-basic, .mode-competition {
-    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-}
-
+/* LOCKED tournament card */
 .mode-tournament {
-    background: linear-gradient(135deg, #888 0%, #666 100%);
     cursor: not-allowed;
+    color: #b9b9b9;
+    border-color: rgba(180, 180, 180, 0.30);
+    background: rgba(255, 255, 255, 0.04);
+    filter: grayscale(0.6);
+    opacity: 0.62;
 }
 
-.mode-tournament:hover {
-    opacity: 1;
+.mode-card-ribbon {
+    position: absolute;
+    top: 18px;
+    right: -42px;
+    transform: rotate(35deg);
+    background: rgba(255, 255, 255, 0.08);
+    color: #ddd;
+    padding: 6px 50px;
+    font-family: 'Anton', Arial, sans-serif;
+    font-style: normal;
+    font-size: 14px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.15);
 }
 
-.mode-icon {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 30px;
-    color: #000;
+/* CARD ICON (top zone) */
+.mode-card-icon {
+    width: 140px;
+    height: 140px;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--gold);
 }
 
-.mode-icon svg {
+.mode-tournament .mode-card-icon { color: #c9c9c9; }
+
+.mode-card-icon svg {
     width: 100%;
     height: 100%;
 }
 
-.padel-racket-icon {
-    width: 90px;
-    height: 120px;
-}
-
-.trophy-icon {
-    width: 100px;
-    height: 100px;
-}
-
-.podium-icon {
-    width: 100px;
-    height: 100px;
-}
-
+/* MODE NAME (middle zone) */
 .mode-name {
     color: var(--white);
-    font-size: 48px;
+    font-family: 'Anton', Arial, sans-serif;
+    font-size: clamp(40px, 3.4vw, 64px);
     font-weight: 400;
-    font-style: italic;
+    font-style: normal;
     text-transform: uppercase;
-    letter-spacing: 3px;
-    margin-bottom: 30px;
+    letter-spacing: 6px;
     text-align: center;
+    line-height: 1;
+    margin: 8px 0 0;
 }
 
-.mode-description {
-    color: #000;
-    font-size: 20px;
-    font-weight: 400;
-    font-style: italic;
-    text-align: center;
-    line-height: 1.6;
+.mode-tournament .mode-name {
+    color: #d4d4d4;
+}
+
+/* PILL ROW (bottom zone) — the icon-driven spec */
+.mode-card-pill-row {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    gap: 14px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    min-height: 64px;
 }
 
-.mode-desc-line {
-    display: block;
-}
-
-.highlight-gold {
-    color: #000;
+.mode-card-pill {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #0a0d12;
+    display: grid;
+    place-items: center;
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-style: normal;
     font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 0;
+}
+
+.mode-card-arrow {
+    color: var(--gold);
+    font-size: 36px;
+    font-style: normal;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+.mode-card-lock {
+    width: 64px;
+    height: 64px;
+    color: #c9c9c9;
+    display: grid;
+    place-items: center;
+}
+
+.mode-card-lock svg { width: 100%; height: 100%; }
+
+.mode-tournament .mode-card-pill {
+    background: #6b6b6b;
+    color: #1a1a1a;
+    box-shadow: none;
+}
+
+/* TAGLINE — small, ignorable from a distance */
+.mode-card-tagline {
+    margin-top: 18px;
+    color: rgba(255, 255, 255, 0.55);
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 2px;
     text-transform: uppercase;
+    text-align: center;
 }
 
-.mode-locked-text {
-    color: #000;
-    font-size: 18px;
-}
-
-.locked-title {
-    color: var(--white);
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-}
-
-.lock-icon {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
-    color: #000;
-    opacity: 0.95;
+.mode-tournament .mode-card-tagline {
+    color: rgba(220, 220, 220, 0.55);
 }
 
 /* TOAST NOTIFICATIONS */
@@ -1032,75 +1062,89 @@ body {
     }
 
     .mode-cards-container {
-        gap: 30px;
+        gap: 32px;
+        max-width: 1200px;
     }
 
     .mode-card {
         max-width: 380px;
         min-height: 480px;
-        padding: 40px 30px;
+        padding: 44px 32px 36px;
     }
 
-    .mode-title {
-        font-size: 64px;
-    }
-
-    .mode-subtitle {
-        font-size: 40px;
+    .mode-card-icon {
+        width: 120px;
+        height: 120px;
     }
 
     .mode-name {
-        font-size: 40px;
+        letter-spacing: 5px;
     }
 
-    .mode-description {
-        font-size: 18px;
+    .mode-card-pill {
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
     }
 }
 
 @media (max-width: 1200px) {
     .mode-cards-container {
         flex-direction: column;
-        gap: 25px;
-        max-width: 500px;
+        gap: 24px;
+        max-width: 520px;
     }
 
     .mode-card {
         max-width: 100%;
         min-height: auto;
-        padding: 35px 30px;
+        padding: 36px 28px 28px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 24px;
     }
 
-    .mode-header {
-        margin-bottom: 40px;
-    }
-
-    .mode-title {
-        font-size: 56px;
-    }
-
-    .mode-subtitle {
-        font-size: 32px;
-    }
-
-    .mode-icon {
-        width: 100px;
-        height: 100px;
-        margin-bottom: 20px;
+    .mode-card-icon {
+        width: 88px;
+        height: 88px;
+        flex-shrink: 0;
     }
 
     .mode-name {
         font-size: 36px;
-        margin-bottom: 20px;
+        letter-spacing: 4px;
+        text-align: left;
+        flex: 1;
     }
 
-    .mode-description {
-        font-size: 16px;
+    .mode-card-pill-row {
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 0;
+        min-height: 0;
     }
 
-    .mode-trophy-icon {
-        font-size: 60px;
-        left: 20px;
+    .mode-card-pill {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+    }
+
+    .mode-card-tagline {
+        width: 100%;
+        text-align: left;
+        margin-top: 4px;
+    }
+
+    .mode-card-ribbon {
+        font-size: 12px;
+        padding: 4px 44px;
+    }
+
+    .mode-header {
+        margin-bottom: 36px;
     }
 }
 
@@ -1145,40 +1189,38 @@ body {
     }
 
     .mode-title {
-        font-size: 42px;
-        letter-spacing: 4px;
-    }
-
-    .mode-subtitle {
-        font-size: 24px;
-    }
-
-    .mode-trophy-icon {
-        top: 15px;
-        left: 15px;
-        font-size: 50px;
+        font-size: 38px;
+        letter-spacing: 6px;
     }
 
     .mode-card {
-        padding: 30px 25px;
+        padding: 24px 20px;
+        gap: 18px;
     }
 
-    .mode-icon {
-        width: 80px;
-        height: 80px;
+    .mode-card-icon {
+        width: 72px;
+        height: 72px;
     }
 
     .mode-name {
-        font-size: 32px;
+        font-size: 28px;
+        letter-spacing: 3px;
     }
 
-    .mode-description {
-        font-size: 14px;
+    .mode-card-pill {
+        width: 38px;
+        height: 38px;
+        font-size: 17px;
     }
 
-    .lock-icon svg {
-        width: 50px;
-        height: 50px;
+    .mode-card-tagline {
+        font-size: 13px;
+        letter-spacing: 1.5px;
+    }
+
+    .mode-card-ribbon {
+        display: none;
     }
 
     .toast-container {
@@ -1218,19 +1260,18 @@ body {
 
 @media (max-width: 600px) {
     .mode-title {
-        font-size: 32px;
-    }
-
-    .mode-subtitle {
-        font-size: 20px;
+        font-size: 28px;
+        letter-spacing: 4px;
     }
 
     .mode-name {
-        font-size: 28px;
+        font-size: 24px;
     }
 
-    .mode-description {
-        font-size: 13px;
+    .mode-card-pill {
+        width: 34px;
+        height: 34px;
+        font-size: 15px;
     }
 
     .winner-display {

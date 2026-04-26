@@ -38,12 +38,94 @@ Quit: Ctrl-C.
 from __future__ import annotations
 
 import argparse
+import logging
 import os
+import queue
 import re
 import sys
 import time
 import threading
+from datetime import datetime
 from pathlib import Path
+
+log = logging.getLogger("bridge")
+
+
+class _BackendIngestHandler(logging.Handler):
+    """
+    logging.Handler that buffers records and ships them to backend's
+    /logs/ingest endpoint in small batches.
+
+    Network failures are swallowed — losing a few log lines is far better
+    than crashing the bridge or blocking it on a slow backend.
+    """
+    def __init__(self, url: str, token: str, batch_size: int = 20,
+                 flush_interval: float = 1.0, max_queue: int = 2000):
+        super().__init__()
+        self.url            = url.rstrip("/") + "/logs/ingest"
+        self.token          = token
+        self.batch_size     = batch_size
+        self.flush_interval = flush_interval
+        self.q: "queue.Queue[dict]" = queue.Queue(maxsize=max_queue)
+        self._stop = threading.Event()
+        t = threading.Thread(target=self._worker, name="log-ingest", daemon=True)
+        t.start()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self.q.put_nowait({
+                "level":  record.levelname,
+                "logger": record.name,
+                "msg":    self.format(record),
+                "ts":     datetime.fromtimestamp(record.created)
+                                  .isoformat(timespec="seconds"),
+            })
+        except queue.Full:
+            pass  # backend offline & we're chatty; drop oldest by skipping
+
+    def _worker(self) -> None:
+        while not self._stop.is_set():
+            batch = []
+            try:
+                # Block for the first item, then drain quickly
+                batch.append(self.q.get(timeout=self.flush_interval))
+                while len(batch) < self.batch_size:
+                    batch.append(self.q.get_nowait())
+            except queue.Empty:
+                pass
+            if batch:
+                self._send(batch)
+
+    def _send(self, batch: list) -> None:
+        body = _json.dumps({"source": "bridge", "entries": batch}).encode()
+        req = urllib_req.Request(
+            self.url,
+            data=body,
+            headers={
+                "Content-Type":  "application/json",
+                "Authorization": f"Bearer {self.token}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib_req.urlopen(req, timeout=2) as _resp:
+                pass
+        except Exception:
+            pass  # backend asleep; we'll keep buffering
+
+
+def _setup_logging(level: str, ingest_url: str, token: str) -> None:
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    root = logging.getLogger()
+    root.setLevel(level.upper())
+    # Console always
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setFormatter(fmt)
+    root.addHandler(sh)
+    # Backend ingest (no files on disk)
+    bh = _BackendIngestHandler(ingest_url, token)
+    bh.setFormatter(logging.Formatter("%(message)s"))
+    root.addHandler(bh)
 
 try:
     import serial
@@ -65,10 +147,16 @@ except ImportError:
 # ---------------------------------------------------------------------------
 BAUD = 115200
 BACKEND_URL = "http://127.0.0.1:5000"
-# Matches: "got: black addpoint" / "got: yellow subtractpoint" / "got: reset"
+# Matches:
+#   "got: black addpoint"
+#   "got: yellow subtractpoint|rb-00041-007"   ← new firmware adds an event_id
+#   "got: reset|rb-00041-008"
+# The trailing "|<event_id>" is optional, so the old sender_test.ino
+# (which does not embed an ID) still works — bridge falls back to its
+# own counter-based ID in that case.
 _LINE_RE = re.compile(
-    r"got:\s+(black|yellow)\s+(addpoint|subtractpoint)"
-    r"|got:\s+(reset)",
+    r"got:\s+(?:(black|yellow)\s+(addpoint|subtractpoint)|(reset))"
+    r"(?:\|(\S+))?",
     re.IGNORECASE,
 )
 # ---------------------------------------------------------------------------
@@ -81,8 +169,8 @@ def _read_token() -> str:
     token_file = Path.home() / ".summa_token"
     if token_file.exists():
         return token_file.read_text().strip()
-    print("[bridge] WARNING: no SUMMA_NODE_TOKEN found — POSTs will be rejected.")
-    print("         Run backend_pi.py first (it creates ~/.summa_token).")
+    log.warning("no SUMMA_NODE_TOKEN found — POSTs will be rejected. "
+                "Run backend_pi.py first (it creates ~/.summa_token).")
     return "no-token"
 
 
@@ -105,12 +193,15 @@ def _post_event(url: str, token: str, team: str | None, action: str, event_id: s
             result = _json.loads(resp.read())
             deduped = result.get("deduped", False)
             tag = " [deduped]" if deduped else ""
-            print(f"[bridge] {action} {team or ''}{tag} -> {result.get('message','ok')}")
+            log.info("POST %s team=%s id=%s%s -> %s",
+                     action, team or "-", event_id, tag,
+                     result.get("message", "ok"))
             return True
     except urllib.error.HTTPError as e:
-        print(f"[bridge] HTTP {e.code} on POST — {e.read().decode(errors='replace')}")
+        log.error("HTTP %s on POST /remote_event — %s",
+                  e.code, e.read().decode(errors="replace"))
     except Exception as e:
-        print(f"[bridge] POST failed: {e}")
+        log.error("POST failed: %s", e)
     return False
 
 
@@ -138,9 +229,9 @@ def bridge_loop(port: str, url: str, token: str) -> None:
         if ser is None:
             try:
                 ser = serial.Serial(port, BAUD, timeout=1)
-                print(f"[bridge] connected to {port}")
+                log.info("connected to %s @ %d", port, BAUD)
             except (serial.SerialException, FileNotFoundError):
-                print(f"[bridge] waiting for {port}...")
+                log.warning("waiting for %s...", port)
                 time.sleep(2)
                 continue
 
@@ -148,7 +239,7 @@ def bridge_loop(port: str, url: str, token: str) -> None:
         try:
             raw = ser.readline()
         except serial.SerialException:
-            print("[bridge] serial disconnected, retrying...")
+            log.warning("serial disconnected, retrying...")
             try: ser.close()
             except Exception: pass
             ser = None
@@ -162,10 +253,11 @@ def bridge_loop(port: str, url: str, token: str) -> None:
         if not line:
             continue
 
-        print(f"[serial] {line}")
+        log.debug("serial: %s", line)
 
         m = _LINE_RE.search(line)
         if not m:
+            log.debug("ignored (no match): %s", line)
             continue  # heartbeat, OLED status line, etc. — ignore
 
         if m.group(3):  # reset (no team)
@@ -175,8 +267,11 @@ def bridge_loop(port: str, url: str, token: str) -> None:
             team = m.group(1).lower()
             action = m.group(2).lower()
 
+        # Prefer the remote-supplied event_id if present (new firmware).
+        # Falls back to a bridge-side counter ID for the old sender_test.ino.
+        remote_id = m.group(4)
         counter += 1
-        event_id = f"bridge-{int(time.time()*1000)}-{counter:05d}"
+        event_id = remote_id or f"bridge-{int(time.time()*1000)}-{counter:05d}"
         _post_event(url, token, team, action, event_id)
 
 
@@ -185,28 +280,31 @@ def main() -> int:
     ap.add_argument("--port", help="Serial device (auto-detected if omitted)")
     ap.add_argument("--url", default=BACKEND_URL,
                     help=f"Backend base URL (default: {BACKEND_URL})")
+    ap.add_argument("--log-level", default=os.environ.get("SUMMA_LOG_LEVEL", "INFO"),
+                    help="DEBUG | INFO | WARNING | ERROR (default INFO)")
     args = ap.parse_args()
-
-    port = args.port or _autodetect_port()
-    if not port:
-        sys.stderr.write(
-            "ERROR: no ESP serial device found. Plug the receiver in.\n"
-            "       Or specify: --port /dev/ttyACM0\n"
-        )
-        return 2
 
     token = _read_token()
     url   = args.url.rstrip("/")
+    _setup_logging(args.log_level, url, token)
 
-    print(f"[bridge] port    {port}")
-    print(f"[bridge] backend {url}")
-    print(f"[bridge] token   {token[:8]}... (truncated)")
-    print("[bridge] ready — waiting for scoring events. Ctrl-C to quit.\n")
+    port = args.port or _autodetect_port()
+    if not port:
+        log.error("no ESP serial device found. Plug the receiver in, "
+                  "or specify --port /dev/ttyACM0")
+        return 2
+
+    log.info("=== SUMMAV3 serial bridge starting ===")
+    log.info("port:     %s", port)
+    log.info("backend:  %s", url)
+    log.info("token:    %s... (truncated)", token[:8])
+    log.info("logs:     console + backend /logs (run: python view_logs.py)")
+    log.info("ready — waiting for scoring events. Ctrl-C to quit.")
 
     try:
         bridge_loop(port, url, token)
     except KeyboardInterrupt:
-        print("\n[bridge] stopped")
+        log.info("stopped by user")
     return 0
 
 

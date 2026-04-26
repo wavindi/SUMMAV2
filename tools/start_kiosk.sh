@@ -56,6 +56,8 @@ exec "$BIN" \
   --kiosk "$URL" \
   --user-data-dir="$PROFILE_DIR" \
   --window-position=${SHIFT},${SHIFT} \
+  --use-gl=egl \
+  --force-device-scale-factor=1 \
   --noerrdialogs \
   --disable-infobars \
   --disable-translate \

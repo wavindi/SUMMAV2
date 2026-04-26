@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 """
-SUMMA V2 backend — PC runner.
+SUMMA V3 backend — PC runner.
 
-Same Flask + Socket.IO app as `padel_backend.py` (which is the Raspberry Pi
-target), but with defaults tuned for running on a Windows/macOS/Linux laptop:
+Thin wrapper around `backend_pi.py` (the engine) with defaults tuned for
+running on a Windows / macOS / Linux laptop:
 
-  - Binds to 127.0.0.1 by default (loopback) so Windows Firewall does not
-    prompt on first launch. Override with SUMMA_HOST=0.0.0.0 to expose on LAN
-    (needed if real ESP32 nodes should reach this PC).
-  - Default port 5000; override with SUMMA_PORT.
-  - If SUMMA_NODE_TOKEN is unset, generates an ephemeral one for this process
-    and prints it to the console so the mock ESP32 tool can pick it up.
-  - Opens the scoreboard in the default browser on startup (disable with
-    SUMMA_NO_BROWSER=1).
+  * Binds to 127.0.0.1 by default (loopback) so Windows Firewall does not
+    prompt on first launch. Override with SUMMA_HOST=0.0.0.0 to expose on
+    LAN (needed if real hardware should reach this PC).
+  * Generates an EPHEMERAL token for this process so we don't trample the
+    persistent ~/.summa_token a Pi might be using on the same machine.
+  * Quieter logging (no rotating file handler — console only).
+  * Opens the scoreboard in the default browser on startup
+    (disable with SUMMA_NO_BROWSER=1).
 
 Run:
     python backend_pc.py
 
-Then in another shell:
-    set SUMMA_NODE_TOKEN=<printed-token>
+Then in another shell, drive scoring without hardware:
+    set SUMMA_NODE_TOKEN=<printed-token>     # Windows
+    export SUMMA_NODE_TOKEN=<printed-token>  # macOS / Linux
     python tools/mock_esp32_node.py --both --demo-match
 """
+from __future__ import annotations
+
 import os
 import secrets
 import socket
@@ -30,7 +33,6 @@ import webbrowser
 
 
 def _lan_ip() -> str:
-    """Best-effort local LAN IP (for the console banner)."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
@@ -42,27 +44,33 @@ def _lan_ip() -> str:
 
 
 def main() -> int:
+    # ── 1. Set PC-friendly defaults BEFORE importing the engine ──────────
     os.environ.setdefault("SUMMA_HOST", "127.0.0.1")
     os.environ.setdefault("SUMMA_PORT", "5000")
     os.environ.setdefault("SUMMA_LOG_LEVEL", "INFO")
 
+    # Ephemeral token: don't write/read ~/.summa_token on the dev machine.
+    # Setting SUMMA_NODE_TOKEN short-circuits the engine's token file logic.
     if not os.environ.get("SUMMA_NODE_TOKEN"):
-        token = "pc-" + secrets.token_urlsafe(16)
-        os.environ["SUMMA_NODE_TOKEN"] = token
-        print(f"[backend_pc] ephemeral SUMMA_NODE_TOKEN={token}")
+        os.environ["SUMMA_NODE_TOKEN"] = "pc-" + secrets.token_urlsafe(16)
 
+    # No log files anywhere — the engine keeps the last N records in memory
+    # and exposes them via GET /logs.  See: python view_logs.py
+
+    # ── 2. Import the engine (this triggers all module-level setup) ──────
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import padel_backend as b
+    import backend_pi as b
 
     host = os.environ["SUMMA_HOST"]
     port = int(os.environ["SUMMA_PORT"])
-    url = f"http://{'127.0.0.1' if host in ('0.0.0.0', '127.0.0.1') else host}:{port}/"
+    url  = f"http://{'127.0.0.1' if host in ('0.0.0.0', '127.0.0.1') else host}:{port}/"
 
     print(f"[backend_pc] bind        {host}:{port}")
     print(f"[backend_pc] scoreboard  {url}")
     if host == "0.0.0.0":
         print(f"[backend_pc] LAN access  http://{_lan_ip()}:{port}/")
     print(f"[backend_pc] token       {os.environ['SUMMA_NODE_TOKEN']}")
+    print(f"[backend_pc] logs        in-memory only — run: python view_logs.py")
 
     if os.environ.get("SUMMA_NO_BROWSER") != "1":
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()

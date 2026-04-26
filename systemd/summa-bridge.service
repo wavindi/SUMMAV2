@@ -1,0 +1,32 @@
+# /etc/systemd/system/summa-bridge.service
+#
+# Run the ESP32 serial bridge on boot. The bridge reads scoring events
+# from the receiver ESP over USB-CDC and POSTs them to the backend.
+#
+# Manual install:
+#   sudo cp systemd/summa-bridge.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now summa-bridge.service
+
+[Unit]
+Description=SUMMA V3 ESP32 serial bridge
+After=summa-backend.service
+Wants=summa-backend.service
+# Don't fight the bridge if the receiver is unplugged at boot — it will
+# poll for the device and connect when it appears.
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/summa/SUMMAV3
+ExecStart=/usr/bin/python3 /home/pi/summa/SUMMAV3/tools/serial_bridge.py
+Restart=on-failure
+RestartSec=3
+# Tiny footprint; serial read + HTTP POST. Cap to keep the Pi 3B happy.
+MemoryHigh=80M
+MemoryMax=120M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
