@@ -41,14 +41,25 @@
 
 #include <WiFi.h>
 #include <esp_now.h>
+#include <esp_wifi.h>
 #include <esp_sleep.h>
 #include <Adafruit_NeoPixel.h>
 
+// Both remotes AND the receiver MUST agree on this channel (1..13). Pick a
+// channel away from any nearby 2.4 GHz APs. Channel 6 is usually quiet.
+#define ESPNOW_CHANNEL 6
+
 // ── PER-REMOTE CONFIG ────────────────────────────────────────────────────
-#define TEAM     "black"            // ← "yellow" for the second remote
+#define TEAM     "yellow"            // ← "yellow" for the second remote
 #define TEAM_R   255                // identity color shown on power-on
 #define TEAM_G   255                // black team → cool white
 #define TEAM_B   255                // yellow team → set 255,200,0
+
+// SERIAL_DEBUG = 1  → chip stays awake, USB-CDC stays open, prints a
+//                     startup banner, and accepts 1/2/3/4 over Serial as
+//                     virtual button gestures. Use for bench testing.
+// SERIAL_DEBUG = 0  → production (deep-sleep, ~12 µA, months of battery).
+#define SERIAL_DEBUG 1
 // ─────────────────────────────────────────────────────────────────────────
 
 // Receiver MAC (the Super Mini plugged into the Pi)
@@ -142,13 +153,22 @@ bool sendWithRetry(const char *line) {
 }
 
 bool initEspNow() {
+  // Idempotent — debug loop calls sendAction() many times, and esp_now_init
+  // returns ESP_ERR_INVALID_STATE on a second call. Cache the result.
+  static bool ready = false;
+  if (ready) return true;
   WiFi.mode(WIFI_STA);
+  // Pin the radio to a known channel BEFORE esp_now_init so the peer entry
+  // matches what the receiver listens on.
+  esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
   if (esp_now_init() != ESP_OK) return false;
   esp_now_register_send_cb(onSent);
   esp_now_peer_info_t peer = {};
   memcpy(peer.peer_addr, RECEIVER_MAC, 6);
-  peer.channel = 0; peer.encrypt = false;
-  return esp_now_add_peer(&peer) == ESP_OK;
+  peer.channel = ESPNOW_CHANNEL; peer.encrypt = false;
+  if (esp_now_add_peer(&peer) != ESP_OK) return false;
+  ready = true;
+  return true;
 }
 
 // ── Action sender ────────────────────────────────────────────────────────
@@ -283,10 +303,10 @@ void handlePressOn() {
   bool ok = sendAction(action);
 
   if (ok) {
-    if (double_tap) ledOnce(255, 110, 0, 90);   // orange = -1
-    else            ledOnce(0,   255, 0, 80);   // green  = +1
+    if (double_tap) ledOnce(255, 0, 0, 1000);   // red   = -1 (1 s)
+    else            ledOnce(0, 255, 0, 1000);   // green = +1 (1 s)
   } else {
-    ledOnce(255, 0, 0, 300);                    // red    = no ack
+    ledOnce(255, 0, 0, 300);                    // short red = no ack
   }
 }
 
@@ -328,28 +348,125 @@ void handlePressOff() {
   ledOff();   // released before 10 s — stay off
 }
 
+// ── SERIAL DEBUG MODE ────────────────────────────────────────────────────
+#if SERIAL_DEBUG
+
+void printBanner() {
+  WiFi.mode(WIFI_STA);              // needed for WiFi.macAddress()
+  Serial.println();
+  Serial.println("=== SUMMA REMOTE (SERIAL_DEBUG) ===");
+  Serial.print  ("Team       : "); Serial.println(TEAM);
+  Serial.print  ("This MAC   : "); Serial.println(WiFi.macAddress());
+  Serial.printf ("Receiver   : %02X:%02X:%02X:%02X:%02X:%02X\n",
+                 RECEIVER_MAC[0], RECEIVER_MAC[1], RECEIVER_MAC[2],
+                 RECEIVER_MAC[3], RECEIVER_MAC[4], RECEIVER_MAC[5]);
+  Serial.print  ("Boot count : "); Serial.println(boot_count);
+  Serial.print  ("Press seq  : "); Serial.println(press_seq);
+  Serial.print  ("Soft state : "); Serial.println(is_off ? "OFF" : "ON");
+  Serial.println();
+  Serial.println("Physical button (GPIO 2) gestures:");
+  Serial.println("  tap         -> +1");
+  Serial.println("  double tap  -> -1");
+  Serial.println("  hold 3 s    -> reset");
+  Serial.println("  hold 10 s   -> power off");
+  Serial.println();
+  Serial.println("Serial commands:");
+  Serial.println("  1 = +1 point   (addpoint)");
+  Serial.println("  2 = -1 point   (subtractpoint)");
+  Serial.println("  3 = reset match");
+  Serial.println("  4 = power off  (deep sleep)");
+  Serial.println();
+}
+
+void debugSend(const char *action, uint8_t r, uint8_t g, uint8_t b) {
+  Serial.printf("CMD %s -> sending... ", action);
+  bool ok = sendAction(action);
+  if (ok) {
+    Serial.println("ack OK");
+    ledOnce(r, g, b, 1000);   // 1 s feedback — green for +1, red for -1, blue for reset
+  } else {
+    Serial.println("NO ACK (check receiver MAC / power)");
+    ledOnce(255, 0, 0, 300);
+  }
+}
+
+void serialLoop() {
+  Serial.println("ready — typing 1/2/3/4 + Enter, or press the GPIO 2 button");
+  Serial.println();
+  bool prev_high = (digitalRead(PIN_BUTTON) == HIGH);
+
+  while (true) {
+    // Physical button still works — re-uses the gesture handler so tap /
+    // double-tap / hold-3s all behave exactly like the production build.
+    bool now_high = (digitalRead(PIN_BUTTON) == HIGH);
+    if (prev_high && !now_high) {
+      Serial.println("[button] press detected");
+      handlePressOn();
+      Serial.println("[button] handled");
+      while (digitalRead(PIN_BUTTON) == LOW) delay(5);
+      prev_high = true;
+    } else {
+      prev_high = now_high;
+    }
+
+    if (Serial.available()) {
+      int c = Serial.read();
+      switch (c) {
+        case '1': debugSend("addpoint",      0,   255, 0  ); break;
+        case '2': debugSend("subtractpoint", 255, 0,   0  ); break;
+        case '3': debugSend("reset",         0,   0,   255); break;
+        case '4':
+          Serial.println("CMD power off -> deep sleep (press button to wake)");
+          is_off = true;
+          delay(50);
+          goToSleep();   // never returns
+          break;
+        case '\r': case '\n': case ' ': case '\t': break;
+        default:
+          Serial.printf("? unknown '%c' — use 1/2/3/4\n", (char)c);
+      }
+    }
+    delay(5);
+  }
+}
+
+#endif // SERIAL_DEBUG
+
 // ── Main ─────────────────────────────────────────────────────────────────
 void setup() {
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   ledPower(false);                  // LED off by default on every boot
   boot_count++;
 
-  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+#if SERIAL_DEBUG
+  Serial.begin(115200);
+  uint32_t t0 = millis();
+  while (!Serial && (millis() - t0) < 2000) delay(10);
+  printBanner();
+#endif
 
-  if (cause != ESP_SLEEP_WAKEUP_GPIO) {
-    // Cold boot: fresh flash, USB plug-in, battery insert.
-    // Treat as "first time on": clear is_off and welcome with team blink.
+  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+  bool cold_boot = (cause != ESP_SLEEP_WAKEUP_GPIO);
+
+  if (cold_boot) {
+    // Fresh flash / USB plug-in / battery insert: clear soft-off and
+    // welcome with the team-color blink so the user sees identity.
     is_off = false;
     ledBlink(TEAM_R, TEAM_G, TEAM_B, 3, 120, 120);
-    goToSleep();
   }
 
-  if (is_off) {
-    handlePressOff();
-  } else {
-    handlePressOn();
-  }
+#if SERIAL_DEBUG
+  // Stay awake forever so the COM port keeps enumerating and the user can
+  // watch logs / drive the remote from the keyboard. Physical button is
+  // polled inside serialLoop().
+  if (!initEspNow()) Serial.println("ERR: esp_now_init failed");
+  serialLoop();                     // never returns
+#else
+  if (cold_boot) goToSleep();
+  if (is_off) handlePressOff();
+  else        handlePressOn();
   goToSleep();
+#endif
 }
 
 void loop() {}    // never reached — every wake calls setup() then sleeps

@@ -29,8 +29,13 @@
 
 #include <WiFi.h>
 #include <esp_now.h>
+#include <esp_wifi.h>
 #include <U8g2lib.h>
 #include <Wire.h>
+
+// MUST match the same constant in firmware/remote/remote.ino. ESP-NOW only
+// hears packets on the channel the radio is currently parked on.
+#define ESPNOW_CHANNEL 6
 
 // 72×40 SSD1306 on the ESP32-C3 Super Mini's onboard OLED pads.
 // SCL = GPIO 6, SDA = GPIO 5 (these are the populated pads on the purple board).
@@ -126,10 +131,12 @@ void setup() {
   Serial.begin(115200);
   delay(500);                          // give USB-CDC a moment to enumerate
   WiFi.mode(WIFI_STA);
+  esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
 
   Serial.println();
   Serial.println("=== SUMMA RECEIVER ===");
   Serial.print("MAC: "); Serial.println(WiFi.macAddress());
+  Serial.print("CH : "); Serial.println(ESPNOW_CHANNEL);
 
   oled.begin();
   oled.setBusClock(400000);
