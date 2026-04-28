@@ -302,11 +302,14 @@ void handlePressOn() {
   const char *action = double_tap ? "subtractpoint" : "addpoint";
   bool ok = sendAction(action);
 
+  // Short flash so the user can press again immediately. A long flash
+  // would block button polling (ledOnce uses delay()) and the next tap
+  // would be lost.
   if (ok) {
-    if (double_tap) ledOnce(255, 0, 0, 1000);   // red   = -1 (1 s)
-    else            ledOnce(0, 255, 0, 1000);   // green = +1 (1 s)
+    if (double_tap) ledOnce(255, 0, 0, 150);    // red   = -1
+    else            ledOnce(0, 255, 0, 150);    // green = +1
   } else {
-    ledOnce(255, 0, 0, 300);                    // short red = no ack
+    ledOnce(255, 0, 0, 200);                    // red = no ack
   }
 }
 
