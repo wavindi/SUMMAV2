@@ -343,7 +343,6 @@ def broadcastsideswitch():
         "timestamp": datetime.now().isoformat(),
     }
     socketio.emit("sideswitchrequired", data, namespace="/")
-    socketio.emit("play_change_audio", {}, namespace="/")  # client plays change.mp3
     log.info("Side switch broadcast: %s", data)
 
 

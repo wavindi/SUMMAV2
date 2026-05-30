@@ -101,9 +101,16 @@
 
             <div class="time-display" id="timeDisplay">00:00</div>
 
-            <div class="live-indicator">
-                <div class="live-dot"></div>
-                <span style="color: #000; font-size: 14px; font-weight: 400; text-transform: uppercase;">LIVE</span>
+            <div style="display: flex; align-items: center;">
+                <div class="live-indicator">
+                    <div class="live-dot"></div>
+                    <span style="color: #000; font-size: 14px; font-weight: 400; text-transform: uppercase;">LIVE</span>
+                </div>
+                
+                <div id="modeIndicator" style="display: none; align-items: center; background: rgba(0,0,0,0.05); padding: 4px 10px; border-radius: 12px; margin-left: 15px; border: 1px solid rgba(0,0,0,0.1);">
+                    <span id="modeIcon" style="width: 18px; height: 18px; margin-right: 6px; display: inline-block; color: #000;"></span>
+                    <span id="modeText" style="color: #000; font-size: 14px; font-weight: 600; text-transform: uppercase; font-family: 'Anton', Arial, sans-serif; letter-spacing: 1px;"></span>
+                </div>
             </div>
 
             <div class="logo-container">
@@ -168,7 +175,11 @@
     <div class="winner-display" id="winnerDisplay">
         <!-- STAGE 1: Trophy + Title + Winner Name -->
         <div class="winner-stage-1" id="stage1">
-            <div class="winner-trophy">🏆</div>
+            <div class="winner-trophy" style="width: 150px; height: 150px; color: var(--gold); margin: 0 auto 20px auto;">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
+                    <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+                </svg>
+            </div>
             <div class="winner-title">MATCH WINNER</div>
             <div class="winner-team-name" id="winnerTeamNameStage1">BLACK TEAM</div>
         </div>
@@ -177,7 +188,11 @@
         <div class="winner-stage-2" id="stage2">
             <!-- Header with Trophy, Winner, and Stats in one line -->
             <div class="winner-header-with-stats">
-                <div class="winner-trophy-small">🏆</div>
+                <div class="winner-trophy-small" style="width: 60px; height: 60px; color: var(--gold); margin-right: 20px;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
+                        <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+                    </svg>
+                </div>
                 
                 <div class="winner-center-info">
                     <div class="winner-title-small">MATCH WINNER</div>

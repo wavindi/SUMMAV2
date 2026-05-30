@@ -118,14 +118,6 @@ if (typeof io !== 'undefined') {
     socket.on('sideswitchrequired', (data) => handleSideSwitch(data));
     socket.on('sensor_validation_result', (data) => console.log('Sensor validation:', data));
 
-    // V2: server-side pygame removed; play change.mp3 in the browser on side-switch
-    socket.on('play_change_audio', () => {
-        try {
-            const a = new Audio('change.mp3');
-            a.volume = 1.0;
-            a.play().catch(e => console.warn('audio play blocked:', e));
-        } catch (e) { console.warn('audio error', e); }
-    });
 
     // V2: per-team online badge driven by ESP32 heartbeat stream
     socket.on('sensor_heartbeat', (snapshot) => {
@@ -240,10 +232,12 @@ function showSideSwitchNotification(data) {
 
     notification.innerHTML = `
         <div style="font-family: 'Anton', Arial, sans-serif; font-style: italic; text-align: center;">
-            <div style="font-size: 120px; color: #d4af37; margin-bottom: 30px;">🔄</div>
+            <div style="width: 120px; height: 120px; color: #d4af37; margin: 0 auto 30px auto;">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
+                    <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+                </svg>
+            </div>
             <div style="font-size: 80px; color: #d4af37; text-transform: uppercase; letter-spacing: 10px; margin-bottom: 20px;">CHANGE SIDES</div>
-            <div style="font-size: 60px; color: white; margin-bottom: 40px;">Total Games: ${data.totalgames || 0}</div>
-            <div style="font-size: 48px; color: rgba(255, 255, 255, 0.7);">Score: ${data.gamescore || '0-0'}</div>
             <div style="font-size: 24px; color: rgba(212, 175, 55, 0.8); margin-top: 50px; text-transform: uppercase;">Dismissing in 6 seconds...</div>
         </div>
     `;
@@ -380,6 +374,8 @@ function updateFromGameState(data) {
     matchWon = data.matchwon; matchWonFlag = data.matchwon;
     gameMode = data.gamemode;
     
+    updateModeIndicator(gameMode);
+    
     // SYNC TIME FROM SERVER
     if (data.matchstarttime) {
         serverMatchStartTime = data.matchstarttime;
@@ -488,6 +484,7 @@ function getToastMessage(action, gamestate) {
 
 function selectMode(mode) {
     gameMode = mode;
+    updateModeIndicator(mode);
     fetch(`${API_BASE}/setgamemode`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -577,3 +574,34 @@ function renderHeartbeatBadges(snapshot) {
         badge.style.color = online ? '#0f0' : '#f55';
     });
 }
+
+function updateModeIndicator(mode) {
+    const indicator = document.getElementById('modeIndicator');
+    const iconSpan = document.getElementById('modeIcon');
+    const textSpan = document.getElementById('modeText');
+    if (!indicator || !iconSpan || !textSpan) return;
+    
+    if (!mode || mode === 'normal' || mode === 'tiebreak' || mode === 'supertiebreak') {
+        // Only show for basic or competition modes directly set, though backend sets mode as 'normal' sometimes, 
+        // wait backend gameMode vs mode. gamestate['gamemode'] holds 'basic' or 'competition'. 
+        // gamestate['mode'] holds 'normal' or 'tiebreak'.
+        // So gameMode will be 'basic' or 'competition'.
+    }
+    
+    if (!mode) {
+        indicator.style.display = 'none';
+        return;
+    }
+    
+    indicator.style.display = 'flex';
+    if (mode === 'basic') {
+        textSpan.textContent = 'BASIC';
+        iconSpan.innerHTML = `<svg viewBox="0 0 90 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;"><ellipse cx="45" cy="35" rx="30" ry="35" stroke="currentColor" stroke-width="6"/><line x1="45" y1="70" x2="45" y2="115" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><circle cx="45" cy="35" r="12" fill="currentColor" opacity="0.25"/></svg>`;
+    } else if (mode === 'competition') {
+        textSpan.textContent = 'COMPETITION';
+        iconSpan.innerHTML = `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;"><path d="M30 15 L30 30 Q30 45 40 50 L35 70 L65 70 L60 50 Q70 45 70 30 L70 15 Z" stroke="currentColor" stroke-width="4"/><rect x="25" y="70" width="50" height="8" fill="currentColor"/><rect x="20" y="78" width="60" height="6" rx="3" fill="currentColor"/><line x1="25" y1="15" x2="75" y2="15" stroke="currentColor" stroke-width="4"/></svg>`;
+    } else {
+        indicator.style.display = 'none';
+    }
+}
+
