@@ -5,7 +5,7 @@
 # a Lite (headless) install you don't want this — point a separate device at
 # the LAN URL printed by backend_pi.py.
 #
-# Patched by tools/setup_pi.sh to use the right User= and DISPLAY.
+# Patched by install.sh/setup.py to use the right User= and DISPLAY.
 
 [Unit]
 Description=SUMMA V3 padel scoreboard kiosk (Chromium)

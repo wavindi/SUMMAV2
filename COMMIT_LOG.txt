@@ -1,0 +1,45 @@
+SUMMA V3 COMMIT AND FEATURE LOG
+================================
+
+This file records the purpose of every commit on the V3 history. Add one row
+for each future commit, using the exact Git commit title.
+
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| Date       | Commit  | Commit name                                                  | Feature / change                                                         |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-25 | cd83726 | Initial commit: SUMMAV3 backend (PC + Pi parity)             | Introduced the Flask/Socket.IO scoreboard, PC and Pi launchers, UI,      |
+|            |         |                                                              | setup tools, service templates and project assets.                       |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-25 | 23f5aad | Add serial bridge, Pi launcher, SQLite persistence, kiosk    | Added USB-serial event forwarding, completed-match storage and           |
+|            |         | setup                                                        | Raspberry Pi kiosk deployment support.                                   |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-26 | 95d0403 | V3 overhaul: in-memory logging, serial bridge, firmware,     | Unified backend/bridge logging, added ESP-NOW remote and receiver         |
+|            |         | V1-style log viewer                                          | firmware, bridge service and operational log viewer.                     |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-26 | 3c964f2 | Add comprehensive one-shot setup.sh for Raspberry Pi         | Added automated Pi package, service and kiosk installation.              |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-26 | 3220c2e | Replace bash setup.sh with Python setup.py                   | Replaced the first shell installer with an idempotent Python installer.  |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-27 | 4a4d746 | new shit                                                     | Moved the superseded backend, setup scripts, documentation and images    |
+|            |         |                                                              | into OLD/ before final cleanup.                                          |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-27 | 5141fe2 | Fix scoreboard click-to-score: post to /remote_event         | Routed on-screen scoring controls through the V3 remote-event API.       |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-27 | 5ee4091 | receiver w fgazet                                            | Fixed ESP-NOW channel selection and expanded remote debug/LED behavior.  |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-04-28 | e5ea239 | Fix: rapid taps on remote were lost during LED feedback      | Shortened blocking LED feedback so consecutive button presses register. |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-05-30 | 908ed77 | letgo                                                        | Removed archived legacy code and bundled firmware; refined scoreboard    |
+|            |         |                                                              | interactions and match-end presentation.                                |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-09-19 | current | Add responsive display layout and deployment installer       | Added portrait/short-TV responsive layouts, a safe updating installer,  |
+|            |         |                                                              | and aligned setup and systemd documentation.                             |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+
+Branch notes
+------------
+
+- V3 is the active product branch.
+- main is the older stable baseline.
+- V1 currently points to the same commit as V3 and is not a separate legacy
+  implementation history.

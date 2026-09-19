@@ -3,7 +3,7 @@
 SUMMA V3 — Full Raspberry Pi Setup
 ===================================
 
-One script. Run it once. Everything is ready.
+The installation engine used by install.sh. Run it once and everything is ready.
 After this finishes the only thing left to do is plug the ESP32 receiver
 into a USB port and reboot the Pi.
 
@@ -17,7 +17,10 @@ What this script does:
   7.  Post-install verification (imports, binaries, services, HTTP, USB)
   8.  Summary            (PASS / WARN / FAIL for every check)
 
-Run from the SUMMAV3 directory:
+Recommended command from the SUMMAV3 directory:
+    bash install.sh
+
+Direct/offline command (skips the Bash updater):
     python3 setup.py
 
 Safe to re-run — all steps are idempotent.

@@ -32,18 +32,21 @@ body {
     background-attachment: fixed;
     overflow: hidden;
     height: 100vh;
+    height: 100dvh;
     background-color: var(--black);
 }
 
 .scoreboard {
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     position: relative;
 }
 
 .scoreboard.hidden {
+    display: none;
     visibility: hidden;
     pointer-events: none;
 }
@@ -667,6 +670,7 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background: #000;
     display: flex;
     align-items: center;
@@ -706,6 +710,7 @@ body {
     inset: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background:
         radial-gradient(ellipse at 50% 35%, #1d242d 0%, #0a0d12 60%, #02040a 100%);
     display: none;
@@ -1290,5 +1295,530 @@ body {
     .sets-table td {
         padding: 2vh 1vw;
         font-size: clamp(13px, 3vw, 18px);
+    }
+}
+
+/* Portrait displays (rotated TVs, kiosks and mobile test screens). */
+@media (orientation: portrait) {
+    body,
+    .scoreboard,
+    .main-scoreboard,
+    .team-section {
+        min-width: 0;
+    }
+
+    .header {
+        height: 64px;
+        min-height: 64px;
+        padding: 0 14px;
+    }
+
+    .tournament-info,
+    .logo-text,
+    .live-indicator span {
+        display: none;
+    }
+
+    .time-display {
+        font-size: clamp(22px, 5vw, 34px);
+        letter-spacing: 1px;
+    }
+
+    .live-indicator {
+        margin-right: 8px;
+        padding: 8px;
+    }
+
+    .live-dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .logo-container {
+        gap: 0;
+        padding: 4px;
+    }
+
+    .logo {
+        width: 44px;
+        height: 44px;
+        border-width: 2px;
+    }
+
+    .main-scoreboard {
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .team-section {
+        flex-direction: row;
+        min-height: 0;
+    }
+
+    .black-team {
+        border-right: 0;
+        border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+    }
+
+    .yellow-team {
+        border-left: 0;
+        border-top: 2px solid rgba(44, 44, 44, 0.3);
+    }
+
+    .team-header {
+        width: 44%;
+        height: auto;
+        min-width: 0;
+        padding: clamp(12px, 3vw, 28px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .team-label,
+    .yellow-team .team-label {
+        width: 100%;
+        min-width: 0;
+        padding: 12px 16px;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .team-name {
+        min-width: 0;
+        font-size: clamp(28px, 6vw, 58px);
+        line-height: 1;
+        letter-spacing: 1px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: center;
+    }
+
+    .team-circle {
+        width: clamp(18px, 3vw, 24px);
+        height: clamp(18px, 3vw, 24px);
+        flex-shrink: 0;
+    }
+
+    .score-container {
+        width: 56%;
+        min-width: 0;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .score-main {
+        font-size: clamp(82px, 20vw, 180px);
+    }
+
+    .team-games {
+        font-size: clamp(34px, 9vw, 72px);
+    }
+
+    .vs-divider {
+        width: 64px;
+        height: 64px;
+    }
+
+    .vs-text {
+        font-size: 22px;
+    }
+
+    .sets-score {
+        top: calc(50% + 68px);
+        bottom: auto;
+        padding: 6px 12px;
+        gap: 2px;
+        border-width: 2px;
+        border-radius: 10px;
+    }
+
+    .sets-label {
+        font-size: 11px;
+    }
+
+    .sets-scores {
+        gap: 18px;
+    }
+
+    .sets-score-number {
+        font-size: 30px;
+    }
+
+    .mode-selection-screen {
+        justify-content: flex-start;
+        padding: 20px 16px;
+        overflow-y: auto;
+    }
+
+    .mode-header {
+        margin: 16px 0 22px;
+        flex-shrink: 0;
+    }
+
+    .mode-title {
+        font-size: clamp(30px, 7vw, 56px);
+        letter-spacing: clamp(4px, 1.5vw, 9px);
+    }
+
+    .mode-title::after {
+        margin-top: 14px;
+    }
+
+    .mode-cards-container {
+        max-width: 620px;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+    .mode-card {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+        grid-template-areas:
+            "icon name pills"
+            "tag tag tag";
+        align-items: center;
+        min-height: 0;
+        padding: 16px 18px;
+        gap: 8px 16px;
+        border-radius: 16px;
+    }
+
+    .mode-card-icon {
+        grid-area: icon;
+        width: 58px;
+        height: 58px;
+    }
+
+    .mode-name {
+        grid-area: name;
+        font-size: clamp(24px, 5vw, 38px);
+        letter-spacing: 3px;
+        text-align: left;
+        margin: 0;
+    }
+
+    .mode-card-pill-row {
+        grid-area: pills;
+        width: auto;
+        min-height: 0;
+        margin: 0;
+        gap: 7px;
+    }
+
+    .mode-card-pill,
+    .mode-card-lock {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+
+    .mode-card-arrow {
+        font-size: 22px;
+    }
+
+    .mode-card-tagline {
+        grid-area: tag;
+        width: 100%;
+        margin: 0;
+        font-size: 12px;
+        letter-spacing: 1px;
+        text-align: left;
+    }
+
+    .mode-card-ribbon {
+        display: none;
+    }
+
+    .winner-display {
+        width: calc(100vw - 20px);
+        height: calc(100dvh - 20px);
+        max-width: none;
+        max-height: none;
+        padding: 20px 14px;
+        border-width: 2px;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .winner-stage-1 {
+        max-width: 100%;
+        gap: clamp(20px, 4vh, 42px);
+    }
+
+    .winner-trophy {
+        width: clamp(120px, 30vw, 220px) !important;
+        height: clamp(120px, 30vw, 220px) !important;
+        font-size: clamp(100px, 28vw, 190px);
+    }
+
+    .winner-title {
+        font-size: clamp(38px, 9vw, 70px);
+        letter-spacing: 2px;
+    }
+
+    .winner-team-name {
+        max-width: 100%;
+        padding: 14px 20px;
+        font-size: clamp(38px, 9vw, 72px);
+        line-height: 1.05;
+        overflow-wrap: anywhere;
+    }
+
+    .winner-stage-2 {
+        justify-content: flex-start;
+        gap: 12px;
+        min-height: 0;
+    }
+
+    .winner-header-with-stats {
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom-width: 3px;
+    }
+
+    .winner-trophy-small {
+        font-size: clamp(46px, 10vw, 76px);
+    }
+
+    .winner-center-info {
+        gap: 4px;
+    }
+
+    .winner-title-small {
+        font-size: clamp(22px, 5vw, 38px);
+        letter-spacing: 2px;
+    }
+
+    .winner-team-name-small {
+        font-size: clamp(28px, 7vw, 50px);
+        letter-spacing: 2px;
+        overflow-wrap: anywhere;
+    }
+
+    .winner-stats-inline {
+        gap: 10px;
+    }
+
+    .stat-item {
+        min-width: 92px;
+        padding: 10px 12px;
+        border-width: 2px;
+        border-radius: 10px;
+    }
+
+    .stat-label {
+        margin-bottom: 2px;
+        font-size: clamp(12px, 2.5vw, 17px);
+        letter-spacing: 1px;
+    }
+
+    .stat-value {
+        font-size: clamp(24px, 5vw, 36px);
+    }
+
+    .sets-table-section,
+    .table-container,
+    .sets-table-wrapper {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .table-container {
+        padding: 14px;
+        border-width: 3px;
+        border-radius: 14px;
+    }
+
+    .table-title {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom-width: 3px;
+        font-size: clamp(24px, 5vw, 38px);
+        letter-spacing: 2px;
+    }
+
+    .sets-table {
+        table-layout: fixed;
+        border-radius: 10px;
+    }
+
+    .sets-table th,
+    .sets-table td,
+    .sets-table td.winner-set {
+        padding: clamp(10px, 1.8vh, 20px) 4px;
+        font-size: clamp(14px, 3.2vw, 24px);
+        letter-spacing: 1px;
+        overflow-wrap: anywhere;
+    }
+
+    .toast-container {
+        top: 76px;
+        left: 10px;
+        right: 10px;
+    }
+
+    .toast {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+@media (orientation: portrait) and (max-width: 520px) {
+    .mode-card {
+        grid-template-columns: 50px minmax(0, 1fr);
+        grid-template-areas:
+            "icon name"
+            "pills pills"
+            "tag tag";
+        gap: 8px 12px;
+        padding: 14px;
+    }
+
+    .mode-card-icon {
+        width: 46px;
+        height: 46px;
+    }
+
+    .mode-card-pill-row {
+        justify-content: flex-start;
+    }
+}
+
+/* Keep short landscape TVs spacious enough for the complete flow. */
+@media (orientation: landscape) and (max-height: 800px) {
+    .header {
+        height: 64px;
+        min-height: 64px;
+    }
+
+    .logo {
+        width: 48px;
+        height: 48px;
+    }
+
+    .team-header {
+        height: 84px;
+        padding: 20px 50px;
+    }
+
+    .score-container {
+        padding: 20px;
+        gap: 16px;
+    }
+
+    .sets-score {
+        bottom: 20px;
+        padding: 10px 22px;
+        gap: 5px;
+    }
+
+    .sets-score-number {
+        font-size: 44px;
+    }
+
+    .mode-selection-screen {
+        padding: 20px 32px;
+    }
+
+    .mode-header {
+        margin-bottom: 24px;
+    }
+
+    .mode-card {
+        min-height: 400px;
+        padding: 30px 26px 24px;
+    }
+
+    .mode-card-icon {
+        width: 100px;
+        height: 100px;
+    }
+
+    .winner-display {
+        padding: 18px 24px;
+    }
+
+    .winner-stage-1 {
+        gap: 18px;
+    }
+
+    .winner-trophy {
+        width: 150px !important;
+        height: 150px !important;
+        font-size: 140px;
+    }
+
+    .winner-header-with-stats {
+        padding-bottom: 10px;
+    }
+
+    .winner-stage-2 {
+        gap: 10px;
+    }
+
+    .table-container {
+        padding: 12px 20px;
+    }
+
+    .table-title {
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+    }
+
+    .sets-table th,
+    .sets-table td,
+    .sets-table td.winner-set {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+}
+
+/* Compact 4:3 / small landscape panels still have room for three columns. */
+@media (orientation: landscape) and (max-width: 1200px) and (max-height: 800px) {
+    .mode-cards-container {
+        flex-direction: row;
+        max-width: none;
+        gap: 16px;
+    }
+
+    .mode-card {
+        min-width: 0;
+        min-height: 360px;
+        padding: 24px 16px 20px;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .mode-card-icon {
+        width: 80px;
+        height: 80px;
+    }
+
+    .mode-name {
+        flex: 0 1 auto;
+        font-size: clamp(22px, 3vw, 32px);
+        letter-spacing: 2px;
+        text-align: center;
+    }
+
+    .mode-card-pill-row {
+        width: auto;
+        justify-content: center;
+    }
+
+    .mode-card-tagline {
+        width: 100%;
+        margin-top: 0;
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-align: center;
+    }
+
+    .mode-card-ribbon {
+        display: none;
     }
 }

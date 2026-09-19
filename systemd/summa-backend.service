@@ -1,6 +1,6 @@
 # /etc/systemd/system/summa-backend.service
 #
-# Run the V3 backend on boot. Installed by tools/setup_pi.sh, which patches
+# Run the V3 backend on boot. Installed by install.sh/setup.py, which patches
 # the User= line and the WorkingDirectory= to match the actual install
 # location.
 #
