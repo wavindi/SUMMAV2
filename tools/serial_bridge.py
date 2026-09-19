@@ -131,11 +131,10 @@ try:
     import serial
     from serial.tools import list_ports
 except ImportError:
-    sys.exit(
-        "ERROR: pyserial not installed.\n"
-        "  sudo apt install -y python3-serial\n"
-        "  or: pip install pyserial --break-system-packages\n"
-    )
+    # Keep protocol/helpers importable for diagnostics and unit tests.  The
+    # executable entry point reports the missing hardware dependency clearly.
+    serial = None
+    list_ports = None
 
 try:
     import urllib.request as urllib_req
@@ -174,7 +173,8 @@ def _read_token() -> str:
     return "no-token"
 
 
-def _post_event(url: str, token: str, team: str | None, action: str, event_id: str) -> bool:
+def _post_event(url: str, token: str, team: str | None, action: str,
+                event_id: str, attempts: int = 8) -> bool:
     payload: dict = {"action": action, "event_id": event_id}
     if team:
         payload["team"] = team
@@ -188,24 +188,38 @@ def _post_event(url: str, token: str, team: str | None, action: str, event_id: s
         },
         method="POST",
     )
-    try:
-        with urllib_req.urlopen(req, timeout=3) as resp:
-            result = _json.loads(resp.read())
-            deduped = result.get("deduped", False)
-            tag = " [deduped]" if deduped else ""
-            log.info("POST %s team=%s id=%s%s -> %s",
-                     action, team or "-", event_id, tag,
-                     result.get("message", "ok"))
-            return True
-    except urllib.error.HTTPError as e:
-        log.error("HTTP %s on POST /remote_event — %s",
-                  e.code, e.read().decode(errors="replace"))
-    except Exception as e:
-        log.error("POST failed: %s", e)
+    for attempt in range(1, max(1, attempts) + 1):
+        try:
+            with urllib_req.urlopen(req, timeout=3) as resp:
+                result = _json.loads(resp.read())
+                deduped = result.get("deduped", False)
+                tag = " [deduped]" if deduped else ""
+                log.info("POST %s team=%s id=%s%s -> %s",
+                         action, team or "-", event_id, tag,
+                         result.get("message", "ok"))
+                return True
+        except urllib.error.HTTPError as e:
+            body = e.read().decode(errors="replace")
+            if e.code < 500:
+                log.error("HTTP %s on POST /remote_event — %s", e.code, body)
+                return False
+            log.warning("HTTP %s on POST /remote_event (attempt %d/%d)",
+                        e.code, attempt, attempts)
+        except Exception as e:
+            log.warning("POST failed (attempt %d/%d): %s", attempt, attempts, e)
+
+        if attempt < attempts:
+            # Covers a normal backend/systemd restart without losing the event.
+            time.sleep(min(0.25 * (2 ** (attempt - 1)), 2.0))
+
+    log.error("dropping event after %d failed attempts: action=%s team=%s id=%s",
+              attempts, action, team or "-", event_id)
     return False
 
 
 def _autodetect_port() -> str | None:
+    if list_ports is None:
+        return None
     for p in list_ports.comports():
         dev = (p.device or "").lower()
         hwid = (p.hwid or "").lower()
@@ -221,6 +235,8 @@ def _autodetect_port() -> str | None:
 
 
 def bridge_loop(port: str, url: str, token: str) -> None:
+    if serial is None:
+        raise RuntimeError("pyserial is not installed")
     counter = 0
     ser = None
 
@@ -283,6 +299,15 @@ def main() -> int:
     ap.add_argument("--log-level", default=os.environ.get("SUMMA_LOG_LEVEL", "INFO"),
                     help="DEBUG | INFO | WARNING | ERROR (default INFO)")
     args = ap.parse_args()
+
+    if serial is None:
+        print(
+            "ERROR: pyserial not installed.\n"
+            "  sudo apt install -y python3-serial\n"
+            "  or: pip install pyserial --break-system-packages",
+            file=sys.stderr,
+        )
+        return 2
 
     token = _read_token()
     url   = args.url.rstrip("/")

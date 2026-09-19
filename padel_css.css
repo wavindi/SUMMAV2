@@ -1686,8 +1686,14 @@ body {
     }
 }
 
-/* Keep short landscape TVs spacious enough for the complete flow. */
-@media (orientation: landscape) and (max-height: 800px) {
+/*
+ * Keep short landscape TVs spacious enough for the complete flow.
+ * Chromium reports CSS pixels after display scaling, so a 1366x768 panel at
+ * 150% scaling is only about 910x510 here. Override the narrow-width rule that
+ * stacks the result header; that vertical stack was pushing the set rows below
+ * the viewport.
+ */
+@media (orientation: landscape) and (max-height: 900px) {
     .header {
         height: 64px;
         min-height: 64px;
@@ -1737,7 +1743,14 @@ body {
     }
 
     .winner-display {
-        padding: 18px 24px;
+        width: calc(100vw - 16px);
+        height: calc(100dvh - 16px);
+        max-width: 1600px;
+        max-height: none;
+        padding: clamp(10px, 2vh, 18px) clamp(12px, 2vw, 24px);
+        border-width: 2px;
+        border-radius: 16px;
+        overflow: hidden;
     }
 
     .winner-stage-1 {
@@ -1751,27 +1764,110 @@ body {
     }
 
     .winner-header-with-stats {
-        padding-bottom: 10px;
+        flex-direction: row;
+        gap: clamp(8px, 1.5vw, 18px);
+        padding-bottom: clamp(6px, 1.4vh, 10px);
+        border-bottom-width: 3px;
+        min-width: 0;
     }
 
     .winner-stage-2 {
-        gap: 10px;
+        gap: clamp(6px, 1.5vh, 10px);
+        min-height: 0;
+        justify-content: center;
+    }
+
+    .winner-trophy-small {
+        width: clamp(38px, 8vh, 64px) !important;
+        height: clamp(38px, 8vh, 64px) !important;
+        margin-right: 0 !important;
+    }
+
+    .winner-center-info {
+        min-width: 0;
+        gap: 2px;
+    }
+
+    .winner-title-small {
+        font-size: clamp(18px, 4vh, 32px);
+        letter-spacing: clamp(1px, 0.35vw, 3px);
+    }
+
+    .winner-team-name-small {
+        font-size: clamp(24px, 5.5vh, 44px);
+        line-height: 1;
+        letter-spacing: clamp(1px, 0.35vw, 3px);
+        overflow-wrap: anywhere;
+    }
+
+    .winner-stats-inline {
+        gap: clamp(6px, 1vw, 12px);
+    }
+
+    .stat-item {
+        min-width: clamp(86px, 12vw, 140px);
+        padding: clamp(5px, 1.2vh, 10px) clamp(7px, 1.2vw, 16px);
+        border-width: 2px;
+        border-radius: 10px;
+    }
+
+    .stat-label {
+        margin-bottom: 2px;
+        font-size: clamp(11px, 2.2vh, 16px);
+        letter-spacing: 1px;
+    }
+
+    .stat-value {
+        font-size: clamp(20px, 4.5vh, 34px);
     }
 
     .table-container {
-        padding: 12px 20px;
+        flex: 0 1 auto;
+        padding: clamp(7px, 1.4vh, 12px) clamp(10px, 1.8vw, 20px);
+        border-width: 3px;
+        border-radius: 14px;
+    }
+
+    .sets-table-section {
+        flex: 0 1 auto;
     }
 
     .table-title {
-        margin-bottom: 8px;
-        padding-bottom: 8px;
+        margin-bottom: clamp(4px, 1vh, 8px);
+        padding-bottom: clamp(4px, 1vh, 8px);
+        border-bottom-width: 3px;
+        font-size: clamp(20px, 4.2vh, 34px);
+        letter-spacing: clamp(1px, 0.4vw, 3px);
     }
 
     .sets-table th,
     .sets-table td,
     .sets-table td.winner-set {
-        padding-top: 10px;
-        padding-bottom: 10px;
+        padding: clamp(5px, 1.4vh, 10px) 4px;
+        font-size: clamp(14px, 3vh, 24px);
+        line-height: 1.05;
+        letter-spacing: clamp(0px, 0.25vw, 2px);
+    }
+}
+
+/* Very narrow landscape panels: preserve score data and drop decoration. */
+@media (orientation: landscape) and (max-height: 520px) {
+    .winner-trophy-small {
+        display: none;
+    }
+
+    .winner-display {
+        padding: 8px 10px;
+    }
+
+    .winner-stage-1 {
+        gap: 10px;
+    }
+
+    .winner-trophy {
+        width: 92px !important;
+        height: 92px !important;
+        margin-bottom: 0 !important;
     }
 }
 

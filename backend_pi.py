@@ -25,6 +25,7 @@ Or via systemd:  systemd/summa-backend.service
 from __future__ import annotations
 
 import itertools
+import ipaddress
 import json
 import logging
 import os
@@ -169,7 +170,7 @@ scoring_rules = {
 # ===========================================================================
 # State (single match in memory; history goes to SQLite on completion)
 # ===========================================================================
-state_lock = threading.Lock()
+state_lock = threading.RLock()
 
 gamestate = {
     "game1": 0, "game2": 0,
@@ -240,17 +241,28 @@ def recall_event(event_id):
 # Auth — bridge POSTs must carry Bearer <token>
 # ===========================================================================
 def sensor_auth_required(fn):
-    """Allow either a valid bearer token (bridge origin) or a same-origin UI."""
+    """Allow a valid bearer token or a request from the local Pi kiosk."""
     @wraps(fn)
     def wrapper(*args, **kwargs):
         auth = request.headers.get("Authorization", "")
         if auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]
-            if token != NODE_TOKEN:
+            if not secrets.compare_digest(token, NODE_TOKEN):
                 log.warning("auth: bad token from %s on %s",
                             request.remote_addr, request.path)
                 return jsonify({"success": False, "error": "invalid token"}), 401
-        return fn(*args, **kwargs)
+            return fn(*args, **kwargs)
+
+        try:
+            is_loopback = ipaddress.ip_address(request.remote_addr or "").is_loopback
+        except ValueError:
+            is_loopback = False
+        if is_loopback:
+            return fn(*args, **kwargs)
+
+        log.warning("auth: missing token from %s on %s",
+                    request.remote_addr, request.path)
+        return jsonify({"success": False, "error": "authentication required"}), 401
     return wrapper
 
 
@@ -453,12 +465,6 @@ def check_set_winner():
                        (gamestate["score1"], gamestate["score2"]), (0, 0),
                        (g1, g2), (0, 0),
                        setbefore, (gamestate["set1"], gamestate["set2"]))
-        gamestate["lastgamestate"] = {
-            "game1": g1, "game2": g2,
-            "point1": gamestate["point1"], "point2": gamestate["point2"],
-            "score1": gamestate["score1"], "score2": gamestate["score2"],
-            "winner": winner,
-        }
         gamestate["game1"] = 0
         gamestate["game2"] = 0
         gamestate["totalgamesinset"] = 0
@@ -466,6 +472,11 @@ def check_set_winner():
         gamestate["initialswitchdone"] = False
         matchwon = check_match_winner()
         if not matchwon:
+            if gamestate["set1"] == 1 and gamestate["set2"] == 1:
+                gamestate["mode"] = "supertiebreak"
+                log.info("entering SUPER-TIEBREAK at 1-1 sets")
+            else:
+                gamestate["mode"] = "normal"
             triggerbasicmodesideswitchifneeded()
         return matchwon
 
@@ -513,7 +524,6 @@ def check_match_winner():
                        (gamestate["game1"], gamestate["game2"]),
                        (gamestate["set1"], gamestate["set2"]),
                        (gamestate["set1"], gamestate["set2"]))
-        store_match_data()
         log.info("MATCH WON by %s — final sets %s, history: %s, duration: %s",
                  winner, gamestate["winner"]["finalsets"],
                  ", ".join(gamestate["sethistory"]),
@@ -572,8 +582,12 @@ def reset_points():
 def handle_normal_game_win(team):
     gamestate["lastgamestate"] = {
         "game1": gamestate["game1"], "game2": gamestate["game2"],
+        "set1": gamestate["set1"], "set2": gamestate["set2"],
         "point1": gamestate["point1"], "point2": gamestate["point2"],
         "score1": gamestate["score1"], "score2": gamestate["score2"],
+        "sethistory": list(gamestate["sethistory"]),
+        "mode": gamestate["mode"],
+        "initialswitchdone": gamestate["initialswitchdone"],
         "winner": team,
     }
     if team == "black":
@@ -590,6 +604,15 @@ def handle_normal_game_win(team):
 def handletiebreakwin(team):
     g1, g2 = gamestate["game1"], gamestate["game2"]
     setbefore = (gamestate["set1"], gamestate["set2"])
+    gamestate["lastgamestate"] = {
+        "game1": g1, "game2": g2,
+        "set1": gamestate["set1"], "set2": gamestate["set2"],
+        "point1": gamestate["point1"], "point2": gamestate["point2"],
+        "score1": gamestate["score1"], "score2": gamestate["score2"],
+        "sethistory": list(gamestate["sethistory"]),
+        "mode": "tiebreak", "initialswitchdone": gamestate["initialswitchdone"],
+        "winner": team,
+    }
     tbscore = gamestate["point2"] if team == "black" else gamestate["point1"]
     if team == "black":
         gamestate["set1"] += 1
@@ -609,11 +632,23 @@ def handletiebreakwin(team):
     reset_points()
     gamestate["mode"] = "normal"
     if not check_match_winner():
+        if gamestate["set1"] == 1 and gamestate["set2"] == 1:
+            gamestate["mode"] = "supertiebreak"
+            log.info("entering SUPER-TIEBREAK at 1-1 sets")
         triggerbasicmodesideswitchifneeded()
 
 
 def handle_supertiebreak_win(team):
     setbefore = (gamestate["set1"], gamestate["set2"])
+    gamestate["lastgamestate"] = {
+        "game1": gamestate["game1"], "game2": gamestate["game2"],
+        "set1": gamestate["set1"], "set2": gamestate["set2"],
+        "point1": gamestate["point1"], "point2": gamestate["point2"],
+        "score1": gamestate["score1"], "score2": gamestate["score2"],
+        "sethistory": list(gamestate["sethistory"]),
+        "mode": "supertiebreak", "initialswitchdone": gamestate["initialswitchdone"],
+        "winner": team,
+    }
     if team == "black":
         gamestate["set1"] += 1
         gamestate["sethistory"].append(f"10-{gamestate['point2']}(STB)")
@@ -691,10 +726,15 @@ def process_add_point(team):
         else:
             _maybe_tiebreak_side_switch(p1 + p2)
 
-    if not gamestate["matchwon"]:
-        add_to_history(action, team, sb, (gamestate["score1"], gamestate["score2"]),
-                       gb, (gamestate["game1"], gamestate["game2"]),
-                       seb, (gamestate["set1"], gamestate["set2"]))
+    add_to_history(action, team, sb, (gamestate["score1"], gamestate["score2"]),
+                   gb, (gamestate["game1"], gamestate["game2"]),
+                   seb, (gamestate["set1"], gamestate["set2"]))
+
+    # Persist only after the final scoring event has entered matchhistory.
+    # Previously the match was saved inside check_match_winner(), which made
+    # completed-match statistics omit the winning game.
+    if gamestate["matchwon"]:
+        store_match_data()
 
     gamestate["lastupdated"] = datetime.now().isoformat()
 
@@ -744,8 +784,13 @@ def process_subtract_point(team):
         last = gamestate["lastgamestate"]
         gamestate.update({
             "game1": last["game1"], "game2": last["game2"],
+            "set1": last.get("set1", gamestate["set1"]),
+            "set2": last.get("set2", gamestate["set2"]),
             "point1": last["point1"], "point2": last["point2"],
             "score1": last["score1"], "score2": last["score2"],
+            "sethistory": list(last.get("sethistory", gamestate["sethistory"])),
+            "mode": last.get("mode", gamestate["mode"]),
+            "initialswitchdone": last.get("initialswitchdone", False),
         })
         winner = last.get("winner") or team
         if winner == "black":
@@ -833,7 +878,11 @@ def _root():
 
 @app.route("/<path:filename>")
 def _static(filename):
-    if os.path.exists(filename):
+    public_files = {
+        "Anton-Regular.ttf", "back.jpg", "change.mp3", "logo.png",
+        "splash.jpg", "padel_css.css", "padel_js.js", "socket.io.min.js",
+    }
+    if filename in public_files and os.path.isfile(filename):
         return send_from_directory(".", filename)
     return f"File {filename} not found", 404
 
@@ -850,30 +899,33 @@ def _remote_event():
     """
     data = request.get_json(silent=True) or {}
     event_id = data.get("event_id")
-    cached = recall_event(event_id)
-    if cached is not None:
-        log.info("remote_event DEDUP event_id=%s", event_id)
-        return jsonify({**cached, "deduped": True}), 200
-
     action = (data.get("action") or "").strip().lower()
     team   = data.get("team")
     log.info("remote_event action=%s team=%s event_id=%s from=%s",
              action, team, event_id, request.remote_addr)
 
-    if action in ("addpoint", "subtractpoint"):
-        if team not in ("black", "yellow"):
-            log.warning("remote_event REJECTED: team required (got %r)", team)
-            return jsonify({"success": False, "error": "team required"}), 400
-        processor = process_add_point if action == "addpoint" else process_subtract_point
-        with state_lock:
-            result = processor(team)
-    elif action == "reset":
-        result = _do_reset_match()
-    else:
-        log.warning("remote_event REJECTED: bad action %r", action)
-        return jsonify({"success": False, "error": f"bad action: {action!r}"}), 400
+    # Keep deduplication and state mutation in one critical section. Without
+    # this, two simultaneous deliveries of the same ESP-NOW event could both
+    # pass recall_event() and increment the score twice.
+    with state_lock:
+        cached = recall_event(event_id)
+        if cached is not None:
+            log.info("remote_event DEDUP event_id=%s", event_id)
+            return jsonify({**cached, "deduped": True}), 200
 
-    remember_event(event_id, result)
+        if action in ("addpoint", "subtractpoint"):
+            if team not in ("black", "yellow"):
+                log.warning("remote_event REJECTED: team required (got %r)", team)
+                return jsonify({"success": False, "error": "team required"}), 400
+            processor = process_add_point if action == "addpoint" else process_subtract_point
+            result = processor(team)
+        elif action == "reset":
+            result = _do_reset_match()
+        else:
+            log.warning("remote_event REJECTED: bad action %r", action)
+            return jsonify({"success": False, "error": f"bad action: {action!r}"}), 400
+
+        remember_event(event_id, result)
     return jsonify(result), (200 if result.get("success") else 400)
 
 
@@ -894,17 +946,21 @@ def _getmatchdata():
 
 
 @app.route("/markmatchdisplayed", methods=["POST"])
+@sensor_auth_required
 def _markdisplayed():
     if not match_storage["matchcompleted"]:
         return jsonify({"success": False, "error": "No match data"}), 400
     match_storage["displayshown"] = True
-    wipe = (request.get_json(silent=True) or {}).get("wipeimmediately", True)
+    data = request.get_json(silent=True) or {}
+    # Accept the current browser spelling and the legacy spelling.
+    wipe = data.get("wipe_immediately", data.get("wipeimmediately", True))
     if wipe:
         wipe_match_storage()
     return jsonify({"success": True})
 
 
 @app.route("/setgamemode", methods=["POST"])
+@sensor_auth_required
 def _setgamemode():
     data = request.get_json(silent=True) or {}
     mode = data.get("mode")
@@ -926,6 +982,7 @@ def _get_scoringrules():
 
 
 @app.route("/setscoringrules", methods=["POST"])
+@sensor_auth_required
 def _set_scoringrules():
     data = request.get_json(silent=True) or {}
     errors = []

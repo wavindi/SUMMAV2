@@ -32,8 +32,11 @@ for each future commit, using the exact Git commit title.
 | 2026-05-30 | 908ed77 | letgo                                                        | Removed archived legacy code and bundled firmware; refined scoreboard    |
 |            |         |                                                              | interactions and match-end presentation.                                |
 +------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
-| 2026-09-19 | current | Add responsive display layout and deployment installer       | Added portrait/short-TV responsive layouts, a safe updating installer,  |
+| 2026-09-19 | cefd588 | Add responsive display layout and deployment installer       | Added portrait/short-TV responsive layouts, a safe updating installer,  |
 |            |         |                                                              | and aligned setup and systemd documentation.                             |
++------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
+| 2026-09-19 | pending | Harden scoring pipeline and add kiosk regression tests       | Fixed scoring, undo, duplicate-event, authentication and static-asset   |
+|            |         |                                                              | defects; added serial retries and automated backend/bridge tests.        |
 +------------+---------+--------------------------------------------------------------+--------------------------------------------------------------------------+
 
 Branch notes
